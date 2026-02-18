@@ -1,40 +1,35 @@
+# Raylib Submodule-able Fork
+Based on raylib v5.5 <br>
+
 <img align="left" style="width:260px" src="https://github.com/raysan5/raylib/blob/master/logo/raylib_logo_animation.gif" width="288px">
+<h3><b>About Raylib</b></h3>
 
 **raylib is a simple and easy-to-use library to enjoy videogames programming.**
 
 raylib is highly inspired by Borland BGI graphics lib and by XNA framework and it's especially well suited for prototyping, tooling, graphical applications, embedded systems and education.
 
 *NOTE for ADVENTURERS: raylib is a programming library to enjoy videogames programming; no fancy interface, no visual helpers, no debug button... just coding in the most pure spartan-programmers way.*
-
-Ready to learn? Jump to [code examples!](https://www.raylib.com/examples.html)
-
----
-
 <br>
 
-[![GitHub Releases Downloads](https://img.shields.io/github/downloads/raysan5/raylib/total)](https://github.com/raysan5/raylib/releases)
-[![GitHub Stars](https://img.shields.io/github/stars/raysan5/raylib?style=flat&label=stars)](https://github.com/raysan5/raylib/stargazers)
-[![GitHub commits since tagged version](https://img.shields.io/github/commits-since/raysan5/raylib/5.5)](https://github.com/raysan5/raylib/commits/master)
-[![GitHub Sponsors](https://img.shields.io/github/sponsors/raysan5?label=sponsors)](https://github.com/sponsors/raysan5)
-[![Packaging Status](https://repology.org/badge/tiny-repos/raylib.svg)](https://repology.org/project/raylib/versions)
-[![License](https://img.shields.io/badge/license-zlib%2Flibpng-blue.svg)](LICENSE)
+*Lisha here. I love this GIF. My neurodivergent brain finds it extremely satisfying and hypnotizing :p*
+<br><br><br>
 
-[![Discord Members](https://img.shields.io/discord/426912293134270465.svg?label=Discord&logo=discord)](https://discord.gg/raylib)
-[![Reddit Static Badge](https://img.shields.io/badge/-r%2Fraylib-red?style=flat&logo=reddit&label=reddit)](https://www.reddit.com/r/raylib/)
-[![Youtube Subscribers](https://img.shields.io/youtube/channel/subscribers/UC8WIBkhYb5sBNqXO1mZ7WSQ?style=flat&label=Youtube&logo=youtube)](https://www.youtube.com/c/raylib)
-[![Twitch Status](https://img.shields.io/twitch/status/raysan5?style=flat&label=Twitch&logo=twitch)](https://www.twitch.tv/raysan5)
+## This Minimal, Slimmed, CMake-only fork
+⚠️This repository is meant to be used only as a sub-module dependency for games. <br>
+⚠️It is not intended to be built standalone and does not include examples. <br>
+<br>
+**What I removed:**
+* IDE templates
+* Alternate build systems
+* examples/
+* projects/
+* tools/
+* ..etc (I don't remember)
+<br>
+*Original repo:* [Raylib](https://github.com/raysan5/raylib)
+<br>
 
-[![Build Windows](https://github.com/raysan5/raylib/actions/workflows/build_windows.yml/badge.svg)](https://github.com/raysan5/raylib/actions/workflows/build_windows.yml)
-[![Build Linux](https://github.com/raysan5/raylib/actions/workflows/build_linux.yml/badge.svg)](https://github.com/raysan5/raylib/actions/workflows/build_linux.yml)
-[![Build macOS](https://github.com/raysan5/raylib/actions/workflows/build_macos.yml/badge.svg)](https://github.com/raysan5/raylib/actions/workflows/build_macos.yml)
-[![Build WebAssembly](https://github.com/raysan5/raylib/actions/workflows/build_webassembly.yml/badge.svg)](https://github.com/raysan5/raylib/actions/workflows/build_webassembly.yml)
-
-[![Build CMake](https://github.com/raysan5/raylib/actions/workflows/build_cmake.yml/badge.svg)](https://github.com/raysan5/raylib/actions/workflows/build_cmake.yml)
-[![Build examples Windows](https://github.com/raysan5/raylib/actions/workflows/build_examples_windows.yml/badge.svg)](https://github.com/raysan5/raylib/actions/workflows/build_examples_windows.yml)
-[![Build examples Linux](https://github.com/raysan5/raylib/actions/workflows/build_examples_linux.yml/badge.svg)](https://github.com/raysan5/raylib/actions/workflows/build_examples_linux.yml)
-
-features
---------
+## Features of Raylib
   - **NO external dependencies**, all required libraries are [included into raylib](https://github.com/raysan5/raylib/tree/master/src/external)
   - Multiple platforms supported: **Windows, Linux, MacOS, RPI, Android, HTML5... and more!**
   - Written in plain C code (C99) using PascalCase/camelCase notation
@@ -76,72 +71,24 @@ int main(void)
     return 0;
 }
 ```
+## Usage (CMake Submodule)
+1. Add this repository in your game's as a submodule:
+```git
+git submodule add https://github.com/lishacodesgames/slim-raylib.git raylib
+```
+2. Add it in your project's CMakeLists.txt:
+```cmake
+add_subdirectory(raylib)
 
-build and installation
-----------------------
-
-raylib binary releases for Windows, Linux, macOS, Android and HTML5 are available at the [Github Releases page](https://github.com/raysan5/raylib/releases).
-
-raylib is also available via multiple package managers on multiple OS distributions.
-
-#### Installing and building raylib on multiple platforms
-
-[raylib Wiki](https://github.com/raysan5/raylib/wiki#development-platforms) contains detailed instructions on building and usage on multiple platforms.
-
- - [Working on Windows](https://github.com/raysan5/raylib/wiki/Working-on-Windows)
- - [Working on macOS](https://github.com/raysan5/raylib/wiki/Working-on-macOS)
- - [Working on GNU Linux](https://github.com/raysan5/raylib/wiki/Working-on-GNU-Linux)
- - [Working on Chrome OS](https://github.com/raysan5/raylib/wiki/Working-on-Chrome-OS)
- - [Working on FreeBSD](https://github.com/raysan5/raylib/wiki/Working-on-FreeBSD)
- - [Working on Raspberry Pi](https://github.com/raysan5/raylib/wiki/Working-on-Raspberry-Pi)
- - [Working for Android](https://github.com/raysan5/raylib/wiki/Working-for-Android)
- - [Working for Web (HTML5)](https://github.com/raysan5/raylib/wiki/Working-for-Web-(HTML5))
- - [Working anywhere with CMake](https://github.com/raysan5/raylib/wiki/Working-with-CMake)
-
-*Note that the Wiki is open for edit, if you find some issues while building raylib for your target platform, feel free to edit the Wiki or open an issue related to it.*
-
-#### Setup raylib with multiple IDEs
-
-raylib has been developed on Windows platform using [Notepad++](https://notepad-plus-plus.org/) and [MinGW GCC](https://www.mingw-w64.org/) compiler but it can be used with other IDEs on multiple platforms.
-
-[Projects directory](https://github.com/raysan5/raylib/tree/master/projects) contains several ready-to-use **project templates** to build raylib and code examples with multiple IDEs.
-
-*Note that there are lots of IDEs supported, some of the provided templates could require some review, so please, if you find some issue with a template or you think they could be improved, feel free to send a PR or open a related issue.*
-
-learning and docs
-------------------
-
-raylib is designed to be learned using [the examples](https://github.com/raysan5/raylib/tree/master/examples) as the main reference. There is no standard API documentation but there is a [**cheatsheet**](https://www.raylib.com/cheatsheet/cheatsheet.html) containing all the functions available on the library a short description of each one of them, input parameters and result value names should be intuitive enough to understand how each function works. 
-
-Some additional documentation about raylib design can be found in [raylib GitHub Wiki](https://github.com/raysan5/raylib/wiki). Here are the relevant links:
-
- - [raylib cheatsheet](https://www.raylib.com/cheatsheet/cheatsheet.html)
- - [raylib architecture](https://github.com/raysan5/raylib/wiki/raylib-architecture)
- - [raylib library design](https://github.com/raysan5/raylib/wiki)
- - [raylib examples collection](https://github.com/raysan5/raylib/tree/master/examples)
- - [raylib games collection](https://github.com/raysan5/raylib-games)
-
-
-contact and networks
----------------------
-
-raylib is present in several networks and raylib community is growing everyday. If you are using raylib and enjoying it, feel free to join us in any of these networks. The most active network is our [Discord server](https://discord.gg/raylib)! :)
-
- - Webpage: [https://www.raylib.com](https://www.raylib.com)
- - Discord: [https://discord.gg/raylib](https://discord.gg/raylib)
- - X: [https://x.com/raysan5](https://x.com/raysan5)
- - BlueSky: [https://bsky.app/profile/raysan5](https://bsky.app/profile/raysan5.bsky.social)
- - Twitch:  [https://www.twitch.tv/raysan5](https://www.twitch.tv/raysan5)
- - Reddit:  [https://www.reddit.com/r/raylib](https://www.reddit.com/r/raylib)
- - Patreon: [https://www.patreon.com/raylib](https://www.patreon.com/raylib)
- - YouTube: [https://www.youtube.com/channel/raylib](https://www.youtube.com/c/raylib)
-
-contributors
-------------
-
-<a href="https://github.com/raysan5/raylib/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=raysan5/raylib&max=800&columns=24&anon=0" />
-</a>
+# eg. if your main.c or main.cpp is in src/ and your executable's name is "YourProjectName"
+add_executable(YourProjectName src/main.cpp) 
+target_link_libraries(YourProjectName PRIVATE raylib)
+```
+## Learning Resources
+* [Cheatsheet](https://www.raylib.com/cheatsheet/cheatsheet.html)
+* [Official Wiki](https://github.com/raysan5/raylib/wiki)
+* [Architecture overview](https://github.com/raysan5/raylib/wiki/raylib-architecture)
+* [Official website](https://www.raylib.com/)
 
 license
 -------
