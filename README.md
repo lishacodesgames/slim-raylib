@@ -72,18 +72,16 @@ int main(void)
 }
 ```
 ## Usage (CMake Submodule)
-1. Add this repository in your game's as a submodule:
-```git
-git submodule add https://github.com/lishacodesgames/slim-raylib.git raylib
-```
+1. Add this repository in your game's as a submodule: <br>
+  `git submodule add https://github.com/lishacodesgames/slim-raylib.git raylib`
 2. Add it in your project's CMakeLists.txt:
-```cmake
-add_subdirectory(raylib)
-
-# eg. if your main.c or main.cpp is in src/ and your executable's name is "YourProjectName"
-add_executable(YourProjectName src/main.cpp) 
-target_link_libraries(YourProjectName PRIVATE raylib)
-```
+  ```cmake
+  add_subdirectory(raylib)
+  
+  # eg. if your main.c or main.cpp is in src/ and your executable's name is "YourProjectName"
+  add_executable(YourProjectName src/main.cpp) 
+  target_link_libraries(YourProjectName PRIVATE raylib)
+  ```
 ## Learning Resources
 * [Cheatsheet](https://www.raylib.com/cheatsheet/cheatsheet.html)
 * [Official Wiki](https://github.com/raysan5/raylib/wiki)
