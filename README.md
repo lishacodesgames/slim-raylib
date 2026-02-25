@@ -72,10 +72,17 @@ int main(void)
     return 0;
 }
 ```
-## Usage (CMake Submodule)
+## Usage (Submodule)
+Why use a submodule?
+* if you don't want external dependencies
+* If installing raylib is slow/not happening/you just don't want to
+* It's convenient, especially if you add the raylib headers to a precompiled header file <br>
+
+It's completely subjective :)
+<br>
 1. Add this repository in your game's as a submodule: <br>
   `git submodule add https://github.com/lishacodesgames/slim-raylib.git raylib`
-2. Add it in your project's CMakeLists.txt:
+2. Add it in your project's CMakeLists.txt (optional):
   ```cmake
   add_subdirectory(raylib)
   
