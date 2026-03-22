@@ -29,7 +29,7 @@ include(CompilerFlags)
 # Registers build options that are exposed to cmake
 include(CMakeOptions.txt)
 
-if (UNIX AND NOT APPLE AND NOT "${PLATFORM}" MATCHES "DRM" AND NOT "${PLATFORM}" MATCHES "Web")
+if (UNIX AND NOT APPLE AND NOT "${PLATFORM}" MATCHES "DRM")
   if (NOT GLFW_BUILD_WAYLAND AND NOT GLFW_BUILD_X11)
     message(FATAL_ERROR "Cannot disable both Wayland and X11")
   endif()
@@ -37,22 +37,3 @@ endif()
 
 # Main sources directory (the second parameter sets the output directory name to raylib)
 add_subdirectory(src raylib)
-
-# Uninstall target, only create when building raylib by itself
-# Avoid conflicting target names when using raylib with other libraries
-if(NOT TARGET uninstall AND PROJECT_IS_TOP_LEVEL)
-  configure_file(
-    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Uninstall.cmake"
-    "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake"
-    IMMEDIATE @ONLY)
-
-  add_custom_target(uninstall
-    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
-endif()
-
-if (${BUILD_EXAMPLES})
-  message(STATUS "Building examples is enabled")
-  add_subdirectory(examples)
-endif()
-
-enable_testing()

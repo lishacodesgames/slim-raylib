@@ -26,7 +26,7 @@ set(raylib_public_headers
     rcamera.h
     rlgl.h
     raymath.h
-    )
+)
 
 # Sources to be compiled
 set(raylib_sources
@@ -36,12 +36,10 @@ set(raylib_sources
     rshapes.c
     rtext.c
     rtextures.c
-    )
+)
 
 # <root>/cmake/GlfwImport.cmake handles the details around the inclusion of glfw
-if (NOT ${PLATFORM} MATCHES "Web")
-    include(GlfwImport)
-endif ()
+include(GlfwImport)
 
 # Sets additional platform options and link libraries for each platform
 # also selects the proper graphics API and version for that platform
@@ -62,30 +60,16 @@ if (NOT BUILD_SHARED_LIBS)
 else()
     MESSAGE(STATUS "Building raylib shared library")
     target_compile_definitions(raylib
-                               PRIVATE $<BUILD_INTERFACE:BUILD_LIBTYPE_SHARED>
-                               INTERFACE $<INSTALL_INTERFACE:USE_LIBTYPE_SHARED>
-                               )
-endif()
-
-if (${PLATFORM} MATCHES "Web")
-    target_link_options(raylib PUBLIC "-sUSE_GLFW=3" -sEXPORTED_RUNTIME_METHODS=ccall)
-    if(${GRAPHICS} MATCHES "GRAPHICS_API_OPENGL_ES3")
-        target_link_options(raylib PUBLIC "-sMIN_WEBGL_VERSION=2")
-        target_link_options(raylib PUBLIC "-sMAX_WEBGL_VERSION=2")
-    endif()
-endif()
-
-if (${PLATFORM} MATCHES "Android")
-    # Wrap fopen at link time so all code (including third-party libs) goes
-    # through __wrap_fopen, which handles Android APK asset loading
-    target_link_options(raylib PUBLIC -Wl,--wrap=fopen)
+        PRIVATE $<BUILD_INTERFACE:BUILD_LIBTYPE_SHARED>
+        INTERFACE $<INSTALL_INTERFACE:USE_LIBTYPE_SHARED>
+    )
 endif()
 
 set_target_properties(raylib PROPERTIES
-                      PUBLIC_HEADER "${raylib_public_headers}"
-                      VERSION ${PROJECT_VERSION}
-                      SOVERSION ${API_VERSION}
-                      )
+    PUBLIC_HEADER "${raylib_public_headers}"
+    VERSION ${PROJECT_VERSION}
+    SOVERSION ${API_VERSION}
+)
 
 if (WITH_PIC OR BUILD_SHARED_LIBS)
     set_property(TARGET raylib PROPERTY POSITION_INDEPENDENT_CODE ON)
@@ -106,14 +90,14 @@ include(CompileDefinitions)
 
 # Registering include directories
 target_include_directories(raylib
-                           PUBLIC
-                           $<INSTALL_INTERFACE:include>
-                           $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-                           PRIVATE
-                           ${CMAKE_CURRENT_SOURCE_DIR}
-                           ${OPENGL_INCLUDE_DIR}
-                           ${OPENAL_INCLUDE_DIR}
-                           )
+    PUBLIC
+        $<INSTALL_INTERFACE:include>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${OPENGL_INCLUDE_DIR}
+        ${OPENAL_INCLUDE_DIR}
+)
 
 # Copy the header files to the build directory for convenience
 file(COPY ${raylib_public_headers} DESTINATION "include")
@@ -133,10 +117,6 @@ if (PLATFORM STREQUAL "Desktop")
     endif()
 endif()
 
-# Includes information on how the library will be installed on the system
-# when cmake --install is run
-include(InstallConfigurations)
-
 # Print the flags for the user
 if (DEFINED CMAKE_BUILD_TYPE)
     message(STATUS "Generated build type: ${CMAKE_BUILD_TYPE}")
@@ -147,8 +127,3 @@ endif ()
 message(STATUS "Compiling with the flags:")
 message(STATUS "  PLATFORM=" ${PLATFORM_CPP})
 message(STATUS "  GRAPHICS=" ${GRAPHICS})
-
-# Options if you want to create an installer using CPack
-include(PackConfigurations)
-
-enable_testing()
