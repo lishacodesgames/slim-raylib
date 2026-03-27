@@ -37,3 +37,10 @@ endif()
 
 # Main sources directory (the second parameter sets the output directory name to raylib)
 add_subdirectory(src raylib)
+
+# disable all warning flags
+if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+  target_compile_options(raylib PRIVATE -w)
+elseif (MSVC)
+  target_compile_options(raylib PRIVATE /W0)
+endif()
