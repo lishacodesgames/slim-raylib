@@ -3,18 +3,19 @@
 *   rmodels - Basic functions to draw 3d shapes and load and draw 3d models
 *
 *   CONFIGURATION:
-*       #define SUPPORT_MODULE_RMODELS
+*       #define SUPPORT_MODULE_RMODELS      1
 *           rmodels module is included in the build
 *
-*       #define SUPPORT_FILEFORMAT_OBJ
-*       #define SUPPORT_FILEFORMAT_MTL
-*       #define SUPPORT_FILEFORMAT_IQM
-*       #define SUPPORT_FILEFORMAT_GLTF
-*       #define SUPPORT_FILEFORMAT_VOX
-*       #define SUPPORT_FILEFORMAT_M3D
+*       #define SUPPORT_FILEFORMAT_OBJ      1
+*       #define SUPPORT_FILEFORMAT_MTL      1
+*       #define SUPPORT_FILEFORMAT_IQM      1
+*       #define SUPPORT_FILEFORMAT_GLTF     1
+*       #define SUPPORT_FILEFORMAT_GLTF_WRITE   0
+*       #define SUPPORT_FILEFORMAT_VOX      1
+*       #define SUPPORT_FILEFORMAT_M3D      1
 *           Selected desired fileformats to be supported for model data loading
 *
-*       #define SUPPORT_MESH_GENERATION
+*       #define SUPPORT_MESH_GENERATION     1
 *           Support procedural mesh generation functions, uses external par_shapes.h library
 *           NOTE: Some generated meshes DO NOT include generated texture coordinates
 *
@@ -71,6 +72,11 @@
     #define CGLTF_IMPLEMENTATION
     #include "external/cgltf.h"         // glTF file format loading
 #endif
+#if SUPPORT_FILEFORMAT_GLTF_WRITE
+    // NOTE: No need for custom allocators, memory buffer provided
+    #define CGLTF_WRITE_IMPLEMENTATION
+    #include "external/cgltf_write.h"   // glTF file format writing
+#endif
 
 #if SUPPORT_FILEFORMAT_VOX
     #define VOX_MALLOC RL_MALLOC
@@ -79,7 +85,7 @@
     #define VOX_FREE RL_FREE
 
     #define VOX_LOADER_IMPLEMENTATION
-    #include "external/vox_loader.h"    // VOX file format loading (MagikaVoxel)
+    #include "external/vox_loader.h"    // VOX file format loading (MagicaVoxel)
 #endif
 
 #if SUPPORT_FILEFORMAT_M3D
@@ -429,7 +435,7 @@ void DrawSphere(Vector3 centerPos, float radius, Color color)
     DrawSphereEx(centerPos, radius, 16, 16, color);
 }
 
-// Draw sphere with extended parameters
+// Draw sphere with defined rings and slices
 void DrawSphereEx(Vector3 centerPos, float radius, int rings, int slices, Color color)
 {
 #if 0
@@ -718,9 +724,9 @@ void DrawCylinderWires(Vector3 position, float radiusTop, float radiusBottom, fl
 
 // Draw a wired cylinder with base at startPos and top at endPos
 // NOTE: It could be also used for pyramid and cone
-void DrawCylinderWiresEx(Vector3 startPos, Vector3 endPos, float startRadius, float endRadius, int sides, Color color)
+void DrawCylinderWiresEx(Vector3 startPos, Vector3 endPos, float startRadius, float endRadius, int slices, Color color)
 {
-    if (sides < 3) sides = 3;
+    if (slices < 3) slices = 3;
 
     Vector3 direction = { endPos.x - startPos.x, endPos.y - startPos.y, endPos.z - startPos.z };
     if ((direction.x == 0) && (direction.y == 0) && (direction.z == 0)) return; // Security check
@@ -729,12 +735,12 @@ void DrawCylinderWiresEx(Vector3 startPos, Vector3 endPos, float startRadius, fl
     Vector3 b1 = Vector3Normalize(Vector3Perpendicular(direction));
     Vector3 b2 = Vector3Normalize(Vector3CrossProduct(b1, direction));
 
-    float baseAngle = (2.0f*PI)/sides;
+    float baseAngle = (2.0f*PI)/slices;
 
     rlBegin(RL_LINES);
         rlColor4ub(color.r, color.g, color.b, color.a);
 
-        for (int i = 0; i < sides; i++)
+        for (int i = 0; i < slices; i++)
         {
             // Compute the four vertices
             float s1 = sinf(baseAngle*(i + 0))*startRadius;
@@ -763,10 +769,10 @@ void DrawCylinderWiresEx(Vector3 startPos, Vector3 endPos, float startRadius, fl
 }
 
 // Draw a capsule with the center of its sphere caps at startPos and endPos
-void DrawCapsule(Vector3 startPos, Vector3 endPos, float radius, int slices, int rings, Color color)
+void DrawCapsule(Vector3 startPos, Vector3 endPos, float radius, int rings, int slices, Color color)
 {
     if (slices < 3) slices = 3;
-
+    if (rings  < 1) rings  = 1;
     Vector3 direction = { endPos.x - startPos.x, endPos.y - startPos.y, endPos.z - startPos.z };
 
     // draw a sphere if start and end points are the same
@@ -902,10 +908,10 @@ void DrawCapsule(Vector3 startPos, Vector3 endPos, float radius, int slices, int
 }
 
 // Draw capsule wires with the center of its sphere caps at startPos and endPos
-void DrawCapsuleWires(Vector3 startPos, Vector3 endPos, float radius, int slices, int rings, Color color)
+void DrawCapsuleWires(Vector3 startPos, Vector3 endPos, float radius, int rings, int slices, Color color)
 {
     if (slices < 3) slices = 3;
-
+    if (rings  < 1) rings = 1;
     Vector3 direction = { endPos.x - startPos.x, endPos.y - startPos.y, endPos.z - startPos.z };
 
     // draw a sphere if start and end points are the same
@@ -1161,7 +1167,7 @@ Model LoadModelFromMesh(Mesh mesh)
     return model;
 }
 
-// Check if a model is valid (loaded in GPU, VAO/VBOs)
+// Check if model is valid (loaded in GPU, VAO/VBOs)
 bool IsModelValid(Model model)
 {
     bool result = false;
@@ -1176,16 +1182,17 @@ bool IsModelValid(Model model)
     // but some VBOs could not be used, it depends on Mesh vertex data
     for (int i = 0; i < model.meshCount; i++)
     {
-        if ((model.meshes[i].vertices != NULL) && (model.meshes[i].vboId[0] == 0)) { result = false; break; }  // Vertex position buffer not uploaded to GPU
+        if ((model.meshes[i].vertices != NULL) && (model.meshes[i].vboId[0] == 0)) { result = false; break; }   // Vertex position buffer not uploaded to GPU
         if ((model.meshes[i].texcoords != NULL) && (model.meshes[i].vboId[1] == 0)) { result = false; break; }  // Vertex textcoords buffer not uploaded to GPU
-        if ((model.meshes[i].normals != NULL) && (model.meshes[i].vboId[2] == 0)) { result = false; break; }  // Vertex normals buffer not uploaded to GPU
-        if ((model.meshes[i].colors != NULL) && (model.meshes[i].vboId[3] == 0)) { result = false; break; }  // Vertex colors buffer not uploaded to GPU
-        if ((model.meshes[i].tangents != NULL) && (model.meshes[i].vboId[4] == 0)) { result = false; break; }  // Vertex tangents buffer not uploaded to GPU
-        if ((model.meshes[i].texcoords2 != NULL) && (model.meshes[i].vboId[5] == 0)) { result = false; break; }  // Vertex texcoords2 buffer not uploaded to GPU
-        if ((model.meshes[i].indices != NULL) && (model.meshes[i].vboId[6] == 0)) { result = false; break; }  // Vertex indices buffer not uploaded to GPU
-        if ((model.meshes[i].boneIndices != NULL) && (model.meshes[i].vboId[7] == 0)) { result = false; break; }  // Vertex boneIndices buffer not uploaded to GPU
-        if ((model.meshes[i].boneWeights != NULL) && (model.meshes[i].vboId[8] == 0)) { result = false; break; }  // Vertex boneWeights buffer not uploaded to GPU
-
+        if ((model.meshes[i].normals != NULL) && (model.meshes[i].vboId[2] == 0)) { result = false; break; }    // Vertex normals buffer not uploaded to GPU
+        if ((model.meshes[i].colors != NULL) && (model.meshes[i].vboId[3] == 0)) { result = false; break; }     // Vertex colors buffer not uploaded to GPU
+        if ((model.meshes[i].tangents != NULL) && (model.meshes[i].vboId[4] == 0)) { result = false; break; }   // Vertex tangents buffer not uploaded to GPU
+        if ((model.meshes[i].texcoords2 != NULL) && (model.meshes[i].vboId[5] == 0)) { result = false; break; } // Vertex texcoords2 buffer not uploaded to GPU
+        if ((model.meshes[i].indices != NULL) && (model.meshes[i].vboId[6] == 0)) { result = false; break; }    // Vertex indices buffer not uploaded to GPU
+#if SUPPORT_GPU_SKINNING
+        if ((model.meshes[i].boneIndices != NULL) && (model.meshes[i].vboId[7] == 0)) { result = false; break; } // Vertex boneIndices buffer not uploaded to GPU
+        if ((model.meshes[i].boneWeights != NULL) && (model.meshes[i].vboId[8] == 0)) { result = false; break; } // Vertex boneWeights buffer not uploaded to GPU
+#endif
         // NOTE: Some OpenGL versions do not support VAO, so avoid below check
         //if (model.meshes[i].vaoId == 0) { result = false; break }
     }
@@ -1215,6 +1222,8 @@ void UnloadModel(Model model)
     // Unload animation data
     RL_FREE(model.skeleton.bones);
     RL_FREE(model.skeleton.bindPose);
+    RL_FREE(model.currentPose);
+    RL_FREE(model.boneMatrices);
 
     TRACELOG(LOG_INFO, "MODEL: Unloaded model (and meshes) from RAM and VRAM");
 }
@@ -1281,7 +1290,6 @@ void UploadMesh(Mesh *mesh, bool dynamic)
 
 #if defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2)
     mesh->vaoId = rlLoadVertexArray();
-    if (mesh->vaoId == 0) return;
 
     rlEnableVertexArray(mesh->vaoId);
 
@@ -1950,7 +1958,7 @@ void UnloadMesh(Mesh mesh)
 // Export mesh data to file
 bool ExportMesh(Mesh mesh, const char *fileName)
 {
-    bool success = false;
+    bool result = false;
 
     if (IsFileExtension(fileName, ".obj"))
     {
@@ -2014,22 +2022,35 @@ bool ExportMesh(Mesh mesh, const char *fileName)
         }
 
         // NOTE: Text data length exported is determined by '\0' (NULL) character
-        success = SaveFileText(fileName, txtData);
+        result = SaveFileText(fileName, txtData);
 
         RL_FREE(txtData);
+    }
+    else if (IsFileExtension(fileName, ".gltf")) // Or .glb
+    {
+        // TODO: Implement gltf/glb support
+        /*
+        cgltf_size expected = cgltf_write(options, NULL, 0, data);
+        char *buffer = (char *)RL_CALLOC(expected, 0);
+        cgltf_size actual = cgltf_write(options, buffer, expected, data);
+
+        // NOTE: cgltf_write() includes a NULL terminator that should be ommited in case of a .glb
+        if (options->type == cgltf_file_type_glb) cgltf_write_glb(file, buffer, actual - 1, data->bin, data->bin_size);
+        else SaveFileText(fileName, buffer); // Write a plain JSON file
+        */
     }
     else if (IsFileExtension(fileName, ".raw"))
     {
         // TODO: Support additional file formats to export mesh vertex data
     }
 
-    return success;
+    return result;
 }
 
 // Export mesh as code file (.h) defining multiple arrays of vertex attributes
 bool ExportMeshAsCode(Mesh mesh, const char *fileName)
 {
-    bool success = false;
+    bool result = false;
 
 #ifndef TEXT_BYTES_PER_LINE
     #define TEXT_BYTES_PER_LINE     20
@@ -2113,14 +2134,14 @@ bool ExportMeshAsCode(Mesh mesh, const char *fileName)
     //-----------------------------------------------------------------------------------------
 
     // NOTE: Text data size exported is determined by '\0' (NULL) character
-    success = SaveFileText(fileName, txtData);
+    result = SaveFileText(fileName, txtData);
 
     RL_FREE(txtData);
 
-    //if (success != 0) TRACELOG(LOG_INFO, "FILEIO: [%s] Image as code exported successfully", fileName);
+    //if (result != 0) TRACELOG(LOG_INFO, "FILEIO: [%s] Image as code exported successfully", fileName);
     //else TRACELOG(LOG_WARNING, "FILEIO: [%s] Failed to export image as code", fileName);
 
-    return success;
+    return result;
 }
 
 #if SUPPORT_FILEFORMAT_OBJ || SUPPORT_FILEFORMAT_MTL
@@ -2209,7 +2230,7 @@ Material LoadMaterialDefault(void)
     return material;
 }
 
-// Check if a material is valid (map textures loaded in GPU)
+// Check if material is valid (map textures loaded in GPU)
 bool IsMaterialValid(Material material)
 {
     bool result = false;
@@ -3897,7 +3918,7 @@ void DrawModel(Model model, Vector3 position, float scale, Color tint)
     DrawModelEx(model, position, rotationAxis, 0.0f, vScale, tint);
 }
 
-// Draw a model with extended parameters
+// Draw a model with custom transform
 void DrawModelEx(Model model, Vector3 position, Vector3 rotationAxis, float rotationAngle, Vector3 scale, Color tint)
 {
     // Calculate transformation matrix from function parameters
@@ -3917,7 +3938,7 @@ void DrawModelEx(Model model, Vector3 position, Vector3 rotationAxis, float rota
         Color colDiffuse = mat.maps[MATERIAL_MAP_DIFFUSE].color;
 
         // Applying color tint directly to material diffuse map,
-        // because is comes as an input paramter to the function
+        // because it comes as an input parameter to the function
         Color colTinted = { 0 };
         colTinted.r = (unsigned char)(((int)colDiffuse.r*(int)tint.r)/255);
         colTinted.g = (unsigned char)(((int)colDiffuse.g*(int)tint.g)/255);
@@ -3951,7 +3972,7 @@ void DrawModelWires(Model model, Vector3 position, float scale, Color tint)
     rlDisableWireMode();
 }
 
-// Draw a model wires (with texture if set) with extended parameters
+// Draw a model wires with custom transform
 void DrawModelWiresEx(Model model, Vector3 position, Vector3 rotationAxis, float rotationAngle, Vector3 scale, Color tint)
 {
     rlEnableWireMode();
@@ -3961,51 +3982,25 @@ void DrawModelWiresEx(Model model, Vector3 position, Vector3 rotationAxis, float
     rlDisableWireMode();
 }
 
-// Draw a model points
-// WARNING: OpenGL ES 2.0 does not support point mode drawing
-void DrawModelPoints(Model model, Vector3 position, float scale, Color tint)
-{
-    rlEnablePointMode();
-    rlDisableBackfaceCulling();
-
-    DrawModel(model, position, scale, tint);
-
-    rlEnableBackfaceCulling();
-    rlDisablePointMode();
-}
-
-// Draw a model points
-// WARNING: OpenGL ES 2.0 does not support point mode drawing
-void DrawModelPointsEx(Model model, Vector3 position, Vector3 rotationAxis, float rotationAngle, Vector3 scale, Color tint)
-{
-    rlEnablePointMode();
-    rlDisableBackfaceCulling();
-
-    DrawModelEx(model, position, rotationAxis, rotationAngle, scale, tint);
-
-    rlEnableBackfaceCulling();
-    rlDisablePointMode();
-}
-
 // Draw a billboard
 void DrawBillboard(Camera camera, Texture2D texture, Vector3 position, float scale, Color tint)
 {
-    Rectangle source = { 0.0f, 0.0f, (float)texture.width, (float)texture.height };
+    Rectangle rec = { 0.0f, 0.0f, (float)texture.width, (float)texture.height };
 
-    DrawBillboardRec(camera, texture, source, position, (Vector2){ scale*fabsf((float)source.width/source.height), scale }, tint);
+    DrawBillboardRec(camera, texture, rec, position, (Vector2){ scale*fabsf((float)rec.width/rec.height), scale }, tint);
 }
 
 // Draw a billboard (part of a texture defined by a rectangle)
-void DrawBillboardRec(Camera camera, Texture2D texture, Rectangle source, Vector3 position, Vector2 size, Color tint)
+void DrawBillboardRec(Camera camera, Texture2D texture, Rectangle rec, Vector3 position, Vector2 size, Color tint)
 {
     // NOTE: Billboard locked on axis-Y
     Vector3 up = { 0.0f, 1.0f, 0.0f };
 
-    DrawBillboardPro(camera, texture, source, position, up, size, Vector2Scale(size, 0.5), 0.0f, tint);
+    DrawBillboardPro(camera, texture, rec, position, up, size, Vector2Scale(size, 0.5), 0.0f, tint);
 }
 
-// Draw a billboard with additional parameters
-void DrawBillboardPro(Camera camera, Texture2D texture, Rectangle source, Vector3 position, Vector3 up, Vector2 size, Vector2 origin, float rotation, Color tint)
+// Draw a billboard texture defined by source rectangle with scaling and rotation
+void DrawBillboardPro(Camera camera, Texture2D texture, Rectangle rec, Vector3 position, Vector3 up, Vector2 size, Vector2 origin, float rotation, Color tint)
 {
     // Compute the up vector and the right vector
     Matrix matView = MatrixLookAt(camera.position, camera.target, camera.up);
@@ -4016,20 +4011,20 @@ void DrawBillboardPro(Camera camera, Texture2D texture, Rectangle source, Vector
     // Flip the content of the billboard while maintaining the counterclockwise edge rendering order
     if (size.x < 0.0f)
     {
-        source.x -= size.x;
-        source.width *= -1.0;
+        rec.x -= size.x;
+        rec.width *= -1.0;
         right = Vector3Negate(right);
         origin.x *= -1.0f;
     }
     if (size.y < 0.0f)
     {
-        source.y -= size.y;
-        source.height *= -1.0;
+        rec.y -= size.y;
+        rec.height *= -1.0;
         up = Vector3Negate(up);
         origin.y *= -1.0f;
     }
 
-    // Draw the texture region described by source on the following rectangle in 3D space:
+    // Draw the texture region described by rec on the following rectangle in 3D space:
     //
     //                size.x          <--.
     //  3 ^---------------------------+ 2 \ rotation
@@ -4061,10 +4056,10 @@ void DrawBillboardPro(Camera camera, Texture2D texture, Rectangle source, Vector
     }
 
     Vector2 texcoords[4];
-    texcoords[0] = (Vector2){ (float)source.x/texture.width, (float)(source.y + source.height)/texture.height };
-    texcoords[1] = (Vector2){ (float)(source.x + source.width)/texture.width, (float)(source.y + source.height)/texture.height };
-    texcoords[2] = (Vector2){ (float)(source.x + source.width)/texture.width, (float)source.y/texture.height };
-    texcoords[3] = (Vector2){ (float)source.x/texture.width, (float)source.y/texture.height };
+    texcoords[0] = (Vector2){ (float)rec.x/texture.width, (float)(rec.y + rec.height)/texture.height };
+    texcoords[1] = (Vector2){ (float)(rec.x + rec.width)/texture.width, (float)(rec.y + rec.height)/texture.height };
+    texcoords[2] = (Vector2){ (float)(rec.x + rec.width)/texture.width, (float)rec.y/texture.height };
+    texcoords[3] = (Vector2){ (float)rec.x/texture.width, (float)rec.y/texture.height };
 
     rlSetTexture(texture.id);
     rlBegin(RL_QUADS);
@@ -4112,7 +4107,8 @@ bool CheckCollisionSpheres(Vector3 center1, float radius1, Vector3 center2, floa
     */
 
     // Check for distances squared to avoid sqrtf()
-    if (Vector3DotProduct(Vector3Subtract(center2, center1), Vector3Subtract(center2, center1)) <= (radius1 + radius2)*(radius1 + radius2)) collision = true;
+    float radSum = radius1 + radius2;
+    if (Vector3DistanceSqr(center1, center2) <= (radSum*radSum)) collision = true;
 
     return collision;
 }
@@ -4138,18 +4134,13 @@ bool CheckCollisionBoxSphere(BoundingBox box, Vector3 center, float radius)
 {
     bool collision = false;
 
-    float dmin = 0;
+    Vector3 closestPoint = {
+        Clamp(center.x, box.min.x, box.max.x),
+        Clamp(center.y, box.min.y, box.max.y),
+        Clamp(center.z, box.min.z, box.max.z)
+    };
 
-    if (center.x < box.min.x) dmin += powf(center.x - box.min.x, 2);
-    else if (center.x > box.max.x) dmin += powf(center.x - box.max.x, 2);
-
-    if (center.y < box.min.y) dmin += powf(center.y - box.min.y, 2);
-    else if (center.y > box.max.y) dmin += powf(center.y - box.max.y, 2);
-
-    if (center.z < box.min.z) dmin += powf(center.z - box.min.z, 2);
-    else if (center.z > box.max.z) dmin += powf(center.z - box.max.z, 2);
-
-    if (dmin <= (radius*radius)) collision = true;
+    if (Vector3DistanceSqr(center, closestPoint) <= (radius*radius)) collision = true;
 
     return collision;
 }
@@ -5291,7 +5282,7 @@ static cgltf_result LoadFileGLTFCallback(const struct cgltf_memory_options *memo
 }
 
 // Release file data callback for cgltf
-static void ReleaseFileGLTFCallback(const struct cgltf_memory_options *memoryOptions, const struct cgltf_file_options *fileOptions, void *data)
+static void ReleaseFileGLTFCallback(const struct cgltf_memory_options *memoryOptions, const struct cgltf_file_options *fileOptions, void *data, cgltf_size size)
 {
     UnloadFileData((unsigned char *)data);
 }
@@ -5386,16 +5377,18 @@ static BoneInfo *LoadBoneInfoGLTF(cgltf_skin skin, int *boneCount)
         cgltf_node node = *skin.joints[i];
         if (node.name != NULL) strncpy(bones[i].name, node.name, sizeof(bones[i].name) - 1);
 
-        // Find parent bone index
+        // Find parent bone index by walking up the node tree past any
+        // non-joint ancestors (intermediate transform nodes used by some
+        // DCC exporters), until we hit a node that is also in skin.joints.
         int parentIndex = -1;
-
-        for (unsigned int j = 0; j < skin.joints_count; j++)
+        cgltf_node *ancestor = node.parent;
+        while (ancestor != NULL && parentIndex == -1)
         {
-            if (skin.joints[j] == node.parent)
+            for (unsigned int j = 0; j < skin.joints_count; j++)
             {
-                parentIndex = (int)j;
-                break;
+                if (skin.joints[j] == ancestor) { parentIndex = (int)j; break; }
             }
+            if (parentIndex == -1) ancestor = ancestor->parent;
         }
 
         bones[i].parent = parentIndex;
@@ -6151,17 +6144,36 @@ static Model LoadGLTF(const char *fileName)
 
             for (int i = 0; i < model.skeleton.boneCount; i++)
             {
-                cgltf_node *node = skin.joints[i];
-                cgltf_float worldTransform[16];
-                cgltf_node_transform_world(node, worldTransform);
-                Matrix worldMatrix = {
-                    worldTransform[0], worldTransform[4], worldTransform[8], worldTransform[12],
-                    worldTransform[1], worldTransform[5], worldTransform[9], worldTransform[13],
-                    worldTransform[2], worldTransform[6], worldTransform[10], worldTransform[14],
-                    worldTransform[3], worldTransform[7], worldTransform[11], worldTransform[15]
-                };
+                Matrix bindMatrix = { 0 };
+                cgltf_float inverseBindTransform[16] = { 0 };
 
-                MatrixDecompose(worldMatrix,
+                if ((skin.inverse_bind_matrices != NULL) &&
+                    (skin.inverse_bind_matrices->count >= skin.joints_count) &&
+                    cgltf_accessor_read_float(skin.inverse_bind_matrices, i, inverseBindTransform, 16))
+                {
+                    Matrix inverseBindMatrix = {
+                        inverseBindTransform[0], inverseBindTransform[4], inverseBindTransform[8], inverseBindTransform[12],
+                        inverseBindTransform[1], inverseBindTransform[5], inverseBindTransform[9], inverseBindTransform[13],
+                        inverseBindTransform[2], inverseBindTransform[6], inverseBindTransform[10], inverseBindTransform[14],
+                        inverseBindTransform[3], inverseBindTransform[7], inverseBindTransform[11], inverseBindTransform[15]
+                    };
+                    bindMatrix = MatrixInvert(inverseBindMatrix);
+                }
+                else
+                {
+                    cgltf_float worldTransform[16] = { 0 };
+                    cgltf_node_transform_world(skin.joints[i], worldTransform);
+
+                    Matrix worldMatrix = {
+                        worldTransform[0], worldTransform[4], worldTransform[8], worldTransform[12],
+                        worldTransform[1], worldTransform[5], worldTransform[9], worldTransform[13],
+                        worldTransform[2], worldTransform[6], worldTransform[10], worldTransform[14],
+                        worldTransform[3], worldTransform[7], worldTransform[11], worldTransform[15]
+                    };
+                    bindMatrix = worldMatrix;
+                }
+
+                MatrixDecompose(bindMatrix,
                     &(model.skeleton.bindPose[i].translation),
                     &(model.skeleton.bindPose[i].rotation),
                     &(model.skeleton.bindPose[i].scale));
@@ -6526,20 +6538,58 @@ static ModelAnimation *LoadModelAnimationsGLTF(const char *fileName, int *animCo
         if (data->skins_count > 0)
         {
             cgltf_skin skin = data->skins[0];
+
+            // Precompute, per joint, the static transform contributed by any
+            // intermediate non-joint nodes between the joint and its nearest
+            // joint ancestor. This handles exporters (e.g. wow.export) that
+            // store bone offsets on dummy parent nodes rather than on the
+            // joints themselves. Depends only on the skin, not the animation.
+            int jointCount = (int)skin.joints_count;
+            Matrix *extOffset = (Matrix *)RL_MALLOC(jointCount*sizeof(Matrix));
+
+            if (extOffset == NULL)
+            {
+                // Allocation failed: abort animation loading at the source rather than
+                // propagating a NULL pointer into the per-frame transform loop below
+                TRACELOG(LOG_WARNING, "MODEL: [%s] Failed to allocate joint offset buffer", fileName);
+                cgltf_free(data);
+                UnloadFileData(fileData);
+                *animCount = 0;
+                return NULL;
+            }
+
             *animCount = (int)data->animations_count;
             animations = (ModelAnimation *)RL_CALLOC(data->animations_count, sizeof(ModelAnimation));
 
-            Transform worldTransform = { 0 };
-            cgltf_float cgltf_worldTransform[16] = { 0 };
-            cgltf_node *node = skin.joints[0];
-            cgltf_node_transform_world(node->parent, cgltf_worldTransform);
-            Matrix worldMatrix = {
-                cgltf_worldTransform[0], cgltf_worldTransform[4], cgltf_worldTransform[8], cgltf_worldTransform[12],
-                cgltf_worldTransform[1], cgltf_worldTransform[5], cgltf_worldTransform[9], cgltf_worldTransform[13],
-                cgltf_worldTransform[2], cgltf_worldTransform[6], cgltf_worldTransform[10], cgltf_worldTransform[14],
-                cgltf_worldTransform[3], cgltf_worldTransform[7], cgltf_worldTransform[11], cgltf_worldTransform[15]
-            };
-            MatrixDecompose(worldMatrix, &worldTransform.translation, &worldTransform.rotation, &worldTransform.scale);
+            for (int k = 0; k < jointCount; k++)
+            {
+                extOffset[k] = MatrixIdentity();
+                cgltf_node *n = skin.joints[k]->parent;
+
+                while (n != NULL)
+                {
+                    bool isJoint = false;
+                    for (int jj = 0; jj < jointCount; jj++)
+                    {
+                        if (skin.joints[jj] == n)
+                        {
+                            isJoint = true;
+                            break;
+                        }
+                    }
+
+                    if (isJoint) break;
+
+                    // Compose the intermediate node's local TRS (scale, then rotation, then translation)
+                    Matrix nodeScale = MatrixScale(n->scale[0], n->scale[1], n->scale[2]);
+                    Matrix nodeRotation = QuaternionToMatrix((Quaternion){ n->rotation[0], n->rotation[1], n->rotation[2], n->rotation[3] });
+                    Matrix nodeTranslation = MatrixTranslate(n->translation[0], n->translation[1], n->translation[2]);
+                    Matrix nodeTransform = MatrixMultiply(MatrixMultiply(nodeScale, nodeRotation), nodeTranslation);
+
+                    extOffset[k] = MatrixMultiply(extOffset[k], nodeTransform);
+                    n = n->parent;
+                }
+            }
 
             for (unsigned int a = 0; a < data->animations_count; a++)
             {
@@ -6648,19 +6698,19 @@ static ModelAnimation *LoadModelAnimationsGLTF(const char *fileName, int *animCo
                             }
                         }
 
-                        animations[a].keyframePoses[j][k] = (Transform){
-                            .translation = translation,
-                            .rotation = rotation,
-                            .scale = scale
-                        };
-                    }
+                        // Compose joint local TRS, then prepend the static
+                        // intermediate non-joint offsets so the final TRS is
+                        // expressed relative to the joint's skeleton parent.
+                        Matrix S = MatrixScale(scale.x, scale.y, scale.z);
+                        Matrix R = QuaternionToMatrix(rotation);
+                        Matrix T = MatrixTranslate(translation.x, translation.y, translation.z);
+                        Matrix jointLocal = MatrixMultiply(MatrixMultiply(S, R), T);
+                        Matrix combined = MatrixMultiply(jointLocal, extOffset[k]);
 
-                    Transform *root = &animations[a].keyframePoses[j][0];
-                    root->rotation = QuaternionMultiply(worldTransform.rotation, root->rotation);
-                    root->scale = Vector3Multiply(root->scale, worldTransform.scale);
-                    root->translation = Vector3Multiply(root->translation, worldTransform.scale);
-                    root->translation = Vector3RotateByQuaternion(root->translation, worldTransform.rotation);
-                    root->translation = Vector3Add(root->translation, worldTransform.translation);
+                        Transform tr;
+                        MatrixDecompose(combined, &tr.translation, &tr.rotation, &tr.scale);
+                        animations[a].keyframePoses[j][k] = tr;
+                    }
 
                     BuildPoseFromParentJoints(bones, animations[a].boneCount, animations[a].keyframePoses[j]);
                 }
@@ -6669,6 +6719,8 @@ static ModelAnimation *LoadModelAnimationsGLTF(const char *fileName, int *animCo
                 RL_FREE(boneChannels);
                 RL_FREE(bones);
             }
+
+            RL_FREE(extOffset);
         }
 
         if (data->skins_count > 1)
@@ -6905,7 +6957,7 @@ static Model LoadM3D(const char *fileName)
                 mi = m3d->face[i].materialid;
 
                 // Only allocate colors VertexBuffer if there's a color vertex in the model for this material batch
-                // if all colors are fully transparent black for all verteces of this materal, then assuming no vertex colors
+                // if all colors are fully transparent black for all vertices of this material, then assuming no vertex colors
                 for (j = i, l = vcolor = 0; (j < (int)m3d->numface) && (mi == m3d->face[j].materialid); j++, l++)
                 {
                     if (!m3d->vertex[m3d->face[j].vertex[0]].color ||
